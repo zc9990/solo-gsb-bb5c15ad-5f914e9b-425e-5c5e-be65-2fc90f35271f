@@ -1,0 +1,16 @@
+{
+  "name": "blind-triangle-bench",
+  "version": "1.0.0",
+  "description": "盲杯三角测试台：A/B 样品三角测试、均衡顺序分配、盲码与命中率统计",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  }
+}

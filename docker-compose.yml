@@ -1,0 +1,16 @@
+services:
+  triangle-bench:
+    build: .
+    image: blind-triangle-bench:latest
+    container_name: blind-triangle-bench
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      DB_PATH: /data/triangle.db
+    volumes:
+      - triangle-data:/data
+
+volumes:
+  triangle-data:

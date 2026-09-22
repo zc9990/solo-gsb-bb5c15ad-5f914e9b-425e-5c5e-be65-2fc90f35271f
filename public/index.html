@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>盲杯三角测试台</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="container">
+  <header class="site">
+    <h1>盲杯三角测试台</h1>
+    <span class="muted">A/B 样品 · 三杯盲测 · 均衡随机</span>
+  </header>
+
+  <div class="card">
+    <h2>主持人：创建场次</h2>
+    <p class="muted">填写两种样品的真实名称（仅主持人可见）。创建后请立即保存主持口令，并把加入码发给参与者。</p>
+    <div class="row">
+      <div>
+        <label>样品 A 名称</label>
+        <input type="text" id="nameA" placeholder="例如：配方一 / 对照组" maxlength="80" />
+      </div>
+      <div>
+        <label>样品 B 名称</label>
+        <input type="text" id="nameB" placeholder="例如：配方二 / 实验组" maxlength="80" />
+      </div>
+    </div>
+    <label>场次备注（可选）</label>
+    <input type="text" id="note" placeholder="例如：2026 年 9 月第三轮" maxlength="500" />
+    <button id="createBtn">创建场次</button>
+    <div id="createResult"></div>
+  </div>
+
+  <div class="card">
+    <h2>参与者：输入加入码</h2>
+    <label>六位加入码</label>
+    <input type="text" id="joinCode" class="mono" maxlength="6" placeholder="如 K7MP2Q" autocomplete="off" />
+    <button id="joinBtn">加入场次</button>
+    <p class="muted">加入后系统会为你随机均衡分配一种上杯顺序（AAB/ABA/BAA/BBA/BAB/ABB）并生成三杯盲码。</p>
+  </div>
+
+  <div class="card">
+    <h2>继续 / 查看结果</h2>
+    <div class="row">
+      <div>
+        <label>已加入过？输入加入码进入参与者页面</label>
+        <input type="text" id="enterCode" class="mono" maxlength="6" placeholder="加入码" />
+      </div>
+    </div>
+    <button id="enterBtn" class="secondary">进入参与者页面</button>
+    <button id="resultsBtn" class="secondary">查看关闭后的结果</button>
+    <div id="homeMsg"></div>
+  </div>
+</div>
+
+<script src="/home.js"></script>
+</body>
+</html>
