@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>盲杯三角测试台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>盲杯三角测试台</h1>
+    <p class="sub">三杯两同一异，盲码遮标。主持人创建场次，参与者凭加入码盲测。</p>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>主持人：创建场次</h2>
+        <label for="sampleA">样品 A（真实名称 / 编号）</label>
+        <input type="text" id="sampleA" placeholder="例如：配方甲" maxlength="100">
+        <label for="sampleB">样品 B（真实名称 / 编号）</label>
+        <input type="text" id="sampleB" placeholder="例如：配方乙" maxlength="100">
+        <button id="createBtn">创建场次</button>
+        <div class="error" id="createErr"></div>
+      </div>
+
+      <div class="card">
+        <h2>参与者：加入场次</h2>
+        <label for="joinCode">加入码（6 位）</label>
+        <input type="text" id="joinCode" placeholder="例如：K7M3QP" maxlength="6" class="mono">
+        <button id="joinBtn">前往加入</button>
+        <div class="error" id="joinErr"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    $('createBtn').onclick = async () => {
+      $('createErr').textContent = '';
+      try {
+        const r = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sampleA: $('sampleA').value, sampleB: $('sampleB').value }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || '创建失败');
+        location.href = '/host/' + data.hostToken;
+      } catch (e) {
+        $('createErr').textContent = e.message;
+      }
+    };
+
+    $('joinBtn').onclick = () => {
+      $('joinErr').textContent = '';
+      const code = $('joinCode').value.trim().toUpperCase();
+      if (!/^[A-Z0-9]{6}$/.test(code)) {
+        $('joinErr').textContent = '请输入 6 位加入码';
+        return;
+      }
+      location.href = '/join/' + code;
+    };
+  </script>
+</body>
+</html>

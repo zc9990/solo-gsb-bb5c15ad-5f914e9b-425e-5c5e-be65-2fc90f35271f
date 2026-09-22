@@ -1,0 +1,18 @@
+{
+  "name": "blind-triangle-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "盲杯三角测试台：主持人创建 A/B 样品场次，参与者盲测提交异样杯位与信心值",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.21.2"
+  }
+}

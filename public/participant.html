@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的盲测 - 盲杯三角测试台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>我的盲测</h1>
+    <p class="sub">你好，<b id="pname"></b>。三杯中两杯相同、一杯不同，请找出异样杯。</p>
+    <div id="main"></div>
+  </div>
+
+  <script src="/stats.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const token = location.pathname.split('/').pop();
+    let selectedPos = null;
+    let selectedConf = null;
+    let timer = null;
+
+    async function load() {
+      try {
+        const r = await fetch('/api/participants/' + token);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || '加载失败');
+        render(data);
+      } catch (e) {
+        $('main').innerHTML = `<div class="card"><p class="error">${e.message}</p></div>`;
+        if (timer) clearInterval(timer);
+      }
+    }
+
+    function cupLabel(d, pos) {
+      const c = d.cups.find((x) => x.position === pos);
+      return c ? `杯位 ${pos}（盲码 ${c.code}）` : `杯位 ${pos}`;
+    }
+
+    function render(d) {
+      $('pname').textContent = d.name;
+
+      if (d.status === 'open' && !d.submitted) {
+        // 作答中：只展示盲码，不展示任何样品信息
+        $('main').innerHTML = `
+          <div class="card">
+            <h2>第 1 步：品尝并选出异样杯</h2>
+            <div class="cups">
+              ${d.cups.map((c) => `
+                <div class="cup" data-pos="${c.position}">
+                  <div class="muted">杯位 ${c.position}</div>
+                  <div class="code">${c.code}</div>
+                </div>`).join('')}
+            </div>
+            <h2 style="margin-top:20px">第 2 步：你的信心（1 最没把握 ~ 5 非常确定）</h2>
+            <div class="conf-row">
+              ${[1, 2, 3, 4, 5].map((n) => `<label data-conf="${n}">${n}<input type="radio" name="conf" value="${n}"></label>`).join('')}
+            </div>
+            <button id="submitBtn" disabled>提交答案（仅可提交一次）</button>
+            <div class="error" id="err"></div>
+          </div>`;
+
+        document.querySelectorAll('.cup').forEach((el) => {
+          el.onclick = () => {
+            document.querySelectorAll('.cup').forEach((x) => x.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedPos = Number(el.dataset.pos);
+            maybeEnable();
+          };
+        });
+        document.querySelectorAll('.conf-row label').forEach((el) => {
+          el.onclick = () => {
+            document.querySelectorAll('.conf-row label').forEach((x) => x.classList.remove('checked'));
+            el.classList.add('checked');
+            el.querySelector('input').checked = true;
+            selectedConf = Number(el.dataset.conf);
+            maybeEnable();
+          };
+        });
+        $('submitBtn').onclick = () => submit(d);
+        if (timer) { clearInterval(timer); timer = null; }
+        return;
+      }
+
+      if (d.status === 'open' && d.submitted) {
+        $('main').innerHTML = `
+          <div class="banner wait">已提交：${cupLabel(d, d.answerPosition)}，信心 ${d.confidence}。
+            结果将在主持人关闭场次后公布，请稍候……</div>`;
+        if (!timer) timer = setInterval(load, 4000);
+        return;
+      }
+
+      // 已关闭：公布本人结果与整体统计
+      if (timer) { clearInterval(timer); timer = null; }
+      const mine = d.submitted
+        ? (d.isCorrect
+            ? `<div class="banner">你答对了！异样杯是 ${cupLabel(d, d.correctPosition)}。</div>`
+            : `<div class="banner wait">你选择了 ${cupLabel(d, d.answerPosition)}，正确答案是 ${cupLabel(d, d.correctPosition)}。</div>`)
+        : `<div class="banner wait">你未提交答案。正确杯位是 ${cupLabel(d, d.correctPosition)}。</div>`;
+      $('main').innerHTML = mine + `<p class="muted">你的测试顺序为 <span class="mono">${d.orderSeq}</span>（A/B 含义请询问主持人）。</p>` + renderStats(d.stats);
+    }
+
+    function maybeEnable() {
+      $('submitBtn').disabled = !(selectedPos && selectedConf);
+    }
+
+    async function submit(d) {
+      $('err').textContent = '';
+      $('submitBtn').disabled = true;
+      try {
+        const r = await fetch('/api/participants/' + token + '/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ position: selectedPos, confidence: selectedConf }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || '提交失败');
+        load();
+      } catch (e) {
+        $('err').textContent = e.message;
+        $('submitBtn').disabled = false;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

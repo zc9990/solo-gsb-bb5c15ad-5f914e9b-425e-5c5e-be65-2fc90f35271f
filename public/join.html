@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>加入场次 - 盲杯三角测试台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>加入盲测场次</h1>
+    <p class="sub">加入码：<span class="big-code" id="code"></span></p>
+
+    <div class="card" id="joinCard">
+      <label for="name">你的昵称</label>
+      <input type="text" id="name" placeholder="例如：小明" maxlength="40">
+      <button id="joinBtn">加入并领取我的三杯</button>
+      <div class="error" id="err"></div>
+      <p class="muted">加入后系统会为你分配 3 个带盲码的杯位，其中两杯是同一样品，一杯不同。</p>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const code = location.pathname.split('/').pop().toUpperCase();
+    $('code').textContent = code;
+
+    $('joinBtn').onclick = async () => {
+      $('err').textContent = '';
+      try {
+        const r = await fetch('/api/sessions/' + encodeURIComponent(code) + '/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: $('name').value }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || '加入失败');
+        localStorage.setItem('participant:' + code, data.participantToken);
+        location.href = '/p/' + data.participantToken;
+      } catch (e) {
+        $('err').textContent = e.message;
+      }
+    };
+
+    // 若此前已加入过，可直接回到自己的页面
+    const saved = localStorage.getItem('participant:' + code);
+    if (saved) {
+      const a = document.createElement('a');
+      a.href = '/p/' + saved;
+      a.textContent = '我之前已加入，回到我的测试页 →';
+      $('joinCard').appendChild(a);
+    }
+  </script>
+</body>
+</html>

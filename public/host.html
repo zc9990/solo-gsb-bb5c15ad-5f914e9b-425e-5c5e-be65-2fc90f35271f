@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>主持台 - 盲杯三角测试台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>主持台</h1>
+    <div id="main"><p class="muted">加载中……</p></div>
+  </div>
+
+  <script src="/stats.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const token = location.pathname.split('/').pop();
+    let timer = null;
+
+    async function load() {
+      try {
+        const r = await fetch('/api/sessions/host/' + token);
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '加载失败');
+        render(d);
+      } catch (e) {
+        $('main').innerHTML = `<div class="card"><p class="error">${e.message}</p></div>`;
+        if (timer) clearInterval(timer);
+      }
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function render(d) {
+      const open = d.status === 'open';
+      const submitted = d.participants.filter((p) => p.submitted).length;
+
+      let html = `
+        <div class="card">
+          <h2>场次信息 <span class="pill ${open ? '' : 'closed'}">${open ? '进行中' : '已关闭'}</span></h2>
+          <p>加入码：<span class="big-code">${d.joinCode}</span></p>
+          <p class="muted">参与链接：<a href="/join/${d.joinCode}">${location.origin}/join/${d.joinCode}</a></p>
+          <p>制样映射：样品 <b>A</b> = <b>${esc(d.sampleA)}</b>，样品 <b>B</b> = <b>${esc(d.sampleB)}</b></p>
+          <p class="muted">已加入 ${d.participants.length} 人，已提交 ${submitted} 人。</p>
+          ${open ? `<button class="danger" id="closeBtn">关闭场次并公布结果</button>
+                    <p class="muted">关闭后不可再加入或提交，且操作不可撤销。</p>` : ''}
+        </div>`;
+
+      if (open) {
+        // 关闭前：仅展示制样映射，不展示任何作答与汇总
+        const rows = d.participants.map((p) => `
+          <tr>
+            <td>${esc(p.name)}</td>
+            ${p.cups.map((c) => `<td>盲码 <span class="mono">${c.code}</span> → 样品 <b>${c.sample}</b></td>`).join('')}
+          </tr>`).join('');
+        html += `
+          <div class="card">
+            <h2>制样映射（按此倒样贴码）</h2>
+            ${d.participants.length
+              ? `<table>
+                  <thead><tr><th>参与者</th><th>杯位 1</th><th>杯位 2</th><th>杯位 3</th></tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>`
+              : '<p class="muted">暂无参与者。</p>'}
+          </div>`;
+      } else {
+        // 关闭后：统计 + 明细
+        html += renderStats(d.stats);
+        const rows = d.participants.map((p) => `
+          <tr>
+            <td>${esc(p.name)}</td>
+            <td class="mono">${p.orderSeq}</td>
+            <td>${p.submitted ? '杯位 ' + p.answerPosition : '未提交'}</td>
+            <td>${p.submitted ? p.confidence : '—'}</td>
+            <td>${p.submitted ? (p.isCorrect ? '<span class="ok">命中</span>' : '<span class="bad">未中</span>') : '—'}</td>
+          </tr>`).join('');
+        html += `
+          <div class="card">
+            <h2>作答明细</h2>
+            <table>
+              <thead><tr><th>参与者</th><th>顺序</th><th>选择</th><th>信心</th><th>结果</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`;
+      }
+
+      $('main').innerHTML = html;
+
+      if (open) {
+        $('closeBtn').onclick = async () => {
+          if (!confirm('确定关闭场次？关闭后不可再加入或提交，且不可撤销。')) return;
+          const r = await fetch('/api/sessions/host/' + token + '/close', { method: 'POST' });
+          const data = await r.json();
+          if (!r.ok) { alert(data.error || '关闭失败'); return; }
+          load();
+        };
+        if (!timer) timer = setInterval(load, 4000);
+      } else if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
